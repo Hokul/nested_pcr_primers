@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-from Bio.SeqUtils import MeltingTemp as mt
+from Bio.SeqUtils import MeltingTemp as mt #I'm using the simpliest methode calculation melting temperature (Tm_Wallace)
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
 
-
+#Return complementary nucleotide
 def complement(N):
     NN = {'A':'T', 'T':'A', 'C':'G', 'G':'C'}
     return(NN[N])
-
+#Function for simple check self-complementary of primer
 def self_dimers(seq):
     rev = seq[::-1]
     start = 0
@@ -41,7 +41,7 @@ def self_dimers(seq):
                 return(1)
     if end == len(seq):
         return(0)
-
+#Checking for hairpining of primer
 def hairpin(seq):
     count = -4
     while count >= -((len(seq)-3)):
@@ -55,27 +55,25 @@ def hairpin(seq):
             return(0)
         count -= 1
     return(alig)
-
+#Return GC-content
 def GC(pr):
     return((pr.count('G') + pr.count('C'))/len(pr)*100)
-
+#Return GC-content last 5 nucleotides
 def GCend(pr):
     if pr[-5:].count('G') + pr[-5:].count('C') <= 3:
         return(1)
     else:
         return(0)
-#Возвращает вес комплементарных нуклеотидов для матрицы
+#Return match value
 def Vlpoint(refN, seqN):
-    global NN
     NN = {'A':'T', 'T':'A', 'C':'G', 'G':'C'}
-    m = 10
+    match_value = 10
     if refN == NN[seqN]:
-        return m
+        return match_value
     else:
         return 0
-
+#Generate Smith-Waterman matrix for next complementary alignment
 def SWvlmtrx(REF, seq, p=-10):
-    # Функция возвращает матрицу весов и таблицу пути в виде кортежа
     if len(REF) < len(seq):
         REF, seq = seq, REF
     nref = len(REF) + 1
@@ -97,11 +95,8 @@ def SWvlmtrx(REF, seq, p=-10):
         for j in seq:
             d[kref][0] = kref * 0
             match = d[k2][hseq] + Vlpoint(i, j)
-
             c2 = d[k2 + 1][(hseq)] + p
-
             c3 = d[k2][hseq + 1] + p
-
             if k2+1 < len(c):
                 if match > c2 and match > c3:
                     c[k2+1][hseq+1] = k2, hseq
@@ -126,11 +121,10 @@ def SWvlmtrx(REF, seq, p=-10):
         kref += 1
         hseq = 0
     return d, c
-
+#Return complementing binded primers
 def SWalig(matrx, REF, seq):
     if len(REF) < len(seq):
         REF, seq = seq, REF
-    #Функция возвращает выравненные последовательности
     alref = ''
     alseq = ''
     scrstr = ''
@@ -138,7 +132,6 @@ def SWalig(matrx, REF, seq):
     c = matrx[1]
     corr_R = 0
     corr_s = 0
-    #Поиск начальной точки сбора выравниваия в словаре c на выходе получаем координаты отсчёта
     max_into_d = 0
     counter = 10
     for R in d:
@@ -169,8 +162,7 @@ def SWalig(matrx, REF, seq):
         scrstr = '*' + scrstr
     else:
         scrstr = '-' + scrstr
-    
-    #Цикл собирает выравненные участки последовательностей
+
     while coord_R != 0 and coord_s != 0:
       if coord_s == 0 and coord_R == 0:
             alref = REF[coord_R] + alref
@@ -236,7 +228,7 @@ def SWalig(matrx, REF, seq):
                     alseq = '-' + alseq
                     corr_s += 1
                     scrstr = '-' + scrstr
-    #Последний кусок который добавляет учаски начала и конца последовательности если таковые не выравненны
+
     if len(alref)-corr_R < len(REF):
         alseq_const = len(alseq)
         alref_const = len(alref)
@@ -258,7 +250,7 @@ def SWalig(matrx, REF, seq):
             alref = alref + '-' * (len(alseq)-len(alref))
             scrstr = scrstr + '-' * len(REF[alref_const-corr_R:])
     return(alref, alseq, scrstr)
-
+#Return suitable primer
 def nested(seq):
     shrt = 18
     lng = 25
@@ -290,15 +282,16 @@ def nested(seq):
                             shrt += 1
                         else:
                             return pr
-
+                        
+#Compare forward and reverse primers
 def compare(pr1, pr2):
     self_dimers = SWalig(SWvlmtrx(pr1, pr2[::-1]), pr1, pr2[::-1])
     if self_dimers[2].find('****') == -1 and self_dimers[2].find('***-**') == -1 and self_dimers[2].find('**-***') == -1:
         return(1)
     else:
         return(0)
-
-def primers(end3, end5):
+#Return ready 3' and 5' primers
+def gen_nested_primers(end3, end5):
     list_prF = []
     list_prR = []
     re_end3 = end3
@@ -316,8 +309,6 @@ def primers(end3, end5):
             maxa += 1
         except:
             n -= 1
-            
-
     for i in list_prR:
         for j in list_prF:
             if abs(mt.Tm_Wallace(i) - mt.Tm_Wallace(j)) > 3:
@@ -337,7 +328,7 @@ def primers(end3, end5):
                         end3 = end3[end3.find(prF)+len(prF)-3:]
                         end5 = end5[end5.find(prR)+len(prR)-3:]
                         return(prF, prR, end3, end5)
-
+#Return the strip three 5'-primers, sequence, reverc complement sequence, three 3'-primers 
 def rcr_vis(prF1, prF2, prF3, prR1, prR2, prR3, end3, end5):
     prR1 = prR1[::-1]
     prR2 = prR2[::-1]
@@ -350,9 +341,9 @@ def rcr_vis(prF1, prF2, prF3, prR1, prR2, prR3, end3, end5):
     prR3_vis = ' ' * (len(end5 [:end5.find(prR3)]) - 8) + "<--- 3'-" + prR3 + "-5'"
     return(str('' + prF1_vis +  '\n' + prF2_vis + '\n' + prF3_vis + '\n' + end3 + '\n' + end5 + '\n' + prR3_vis + '\n' + prR2_vis + '\n' + prR1_vis) + '\n')
 
+'''
+Just sample
 end3 = 'tggctgaccAtAgGaCgAgAGCttCCTGGtgaaGtgtgTTtCTtgaAATCatCACcaCCATGGACAgCAaaGGtTcGTCgcagaaAGGGTCCcGCCTGCTCCTGCTGCTGGTggTGTCAAATCTaCTCTTGTGCCAgGGtgTggTcTcCaCccCCgTCTGTCCcaAtGGGccTGgCaaCTGCCaGGtaTCCCTTcgAGACCTGTTTGaCCggGCagtCaTggTGTCCcaCtaCATccATgACctCTCCtcggAAATGTTCAacGAaTTTGATaAACgGTATGCCCAGGGcAAAGgGTtCaTTAcCAtgGcCctCaACAgcTGCCAtACCtccTCCCTtCcTacCCCtGAAGAtAaagAaCAAgcCCaACaGAcccACAtgAAGtCCTTATgAgcTtGATtCTtggGTTgCTgcgCTCCTGGaAtgacCCTCTgTATCAcCTAGTCACcGAggTgCGGgGTATGAAAGgAGcCcCAgATgCTATCCTATCgAGgGCcAtAGAgAtTGaGgAAgAAaacAAAcgACTTCtgGaAggCATgGAGAtGataTTtgGCCAGGTTATTccTggAGCCAAaGAgacTGagCCctaCccTgtgTGGTcaGGACTCCcgTCCCTgCaaaCtAaggATGAAGATgcaCGTtATTCTGCtTTTTATAaCCTGcTCcaCTGCCTGCGCAGgGATtCaaGcAAgaTTGACAcTTACcttAAGcTCcTGaatTGCaGAaTcATCTacaAcAAcAAcTGcTAAgcCCACATccATcCtATCCAttTCTGAGAtGGtTCtTAATGATCcATtCCcTgGCAaacttctctgagctttatAGCTTTgTAATGCATGCTtgGcTctAATGGGTtTCaTCTTAAATAAAaACAgAcTCTGTAGcGATGTCAAAAtct'
-
-
 
 n = int((len(end3))/3)*2-50
 
@@ -366,15 +357,11 @@ pcr_end5 = end5[::-1]
 end5 = end5[:n]
 end3 = end3[:n]
 
-primers_and_seq = primers(end3, end5)
+primers_and_seq = gen_nested_primers(end3, end5)
 prF1 = primers_and_seq[0]
 prR1 = primers_and_seq[1]
 end3 = primers_and_seq[2]
 end5 = primers_and_seq[3]
-
-
-print(' >Прямой праймер 1: ', '\n', prF1, ': Темпертура отжига', '%0.2f' % mt.Tm_Wallace(prF1), '\n', ">Обратный праймер 1: ", '\n',prR1, ': Темпертура отжига', '%0.2f' % mt.Tm_Wallace(prR1))
-
 
 primers_and_seq1 = primers(end3, end5)
 prF2 = primers_and_seq1[0]
@@ -382,15 +369,25 @@ prR2 = primers_and_seq1[1]
 end3 = primers_and_seq1[2]
 end5 = primers_and_seq1[3]
 
-print(' >Прямой праймер 2: ', '\n', prF2, ': Темпертура отжига', '%0.2f' % mt.Tm_Wallace(prF2), '\n', ">Обратный праймер 2: ", '\n',prR2, ': Темпертура отжига', '%0.2f' % mt.Tm_Wallace(prR2))
-
 primers_and_seq2 = primers(end3, end5)
 prF3 = primers_and_seq2[0]
 prR3 = primers_and_seq2[1]
 end3 = primers_and_seq2[2]
 end5 = primers_and_seq2[3]
 
-print(' >Прямой праймер 3: ', '\n', prF3, ': Темпертура отжига', '%0.2f' % mt.Tm_Wallace(prF3), '\n', ">Обратный праймер 3: ",'\n',prR3, ': Темпертура отжига', '%0.2f' % mt.Tm_Wallace(prR3))
-
 with open('file.txt', 'a') as file:
     file.write(rcr_vis(prF1, prF2, prF3, prR1, prR2, prR3, pcr_end3, pcr_end5))
+---------------------------------------------------------------------------------------    
+ 
+                   5'-TTCCTGGTGAAGTGTGTTTC-3' --->
+                                                       5'-CATGGACAGCAAAGGTTCG-3' --->
+                                                                                                  5'-CTGCTGCTGGTGGTGTCAA-3' --->
+TGGCTGACCATAGGACGAGAGCTTCCTGGTGAAGTGTGTTTCTTGAAATCATCACCACCATGGACAGCAAAGGTTCGTCGCAGAAAGGGTCCCGCCTGCTCCTGCTGCTGGTGGTGTCAAATCTACTCTTGTGCCAGGGTGTGGTCTCCACCCCCGTCTGTCCCAATGGGCCTGGCAACTGCCAGGTATCCCTTCGAGACCTGTTTGACCGGGCAGTCATGGTGTCCCACTACATCCATGACCTCTCCTCGGAAATGTTCAACGAATTTGATAAACGGTATGCCCAGGGCAAAGGGTTCATTACCATGGCCCTCAACAGCTGCCATACCTCCTCCCTTCCTACCCCTGAAGATAAAGAACAAGCCCAACAGACCCACATGAAGTCCTTATGAGCTTGATTCTTGGGTTGCTGCGCTCCTGGAATGACCCTCTGTATCACCTAGTCACCGAGGTGCGGGGTATGAAAGGAGCCCCAGATGCTATCCTATCGAGGGCCATAGAGATTGAGGAAGAAAACAAACGACTTCTGGAAGGCATGGAGATGATATTTGGCCAGGTTATTCCTGGAGCCAAAGAGACTGAGCCCTACCCTGTGTGGTCAGGACTCCCGTCCCTGCAAACTAAGGATGAAGATGCACGTTATTCTGCTTTTTATAACCTGCTCCACTGCCTGCGCAGGGATTCAAGCAAGATTGACACTTACCTTAAGCTCCTGAATTGCAGAATCATCTACAACAACAACTGCTAAGCCCACATCCATCCTATCCATTTCTGAGATGGTTCTTAATGATCCATTCCCTGGCAAACTTCTCTGAGCTTTATAGCTTTGTAATGCATGCTTGGCTCTAATGGGTTTCATCTTAAATAAAAACAGACTCTGTAGCGATGTCAAAATCT
+ACCGACTGGTATCCTGCTCTCGAAGGACCACTTCACACAAAGAACTTTAGTAGTGGTGGTACCTGTCGTTTCCAAGCAGCGTCTTTCCCAGGGCGGACGAGGACGACGACCACCACAGTTTAGATGAGAACACGGTCCCACACCAGAGGTGGGGGCAGACAGGGTTACCCGGACCGTTGACGGTCCATAGGGAAGCTCTGGACAAACTGGCCCGTCAGTACCACAGGGTGATGTAGGTACTGGAGAGGAGCCTTTACAAGTTGCTTAAACTATTTGCCATACGGGTCCCGTTTCCCAAGTAATGGTACCGGGAGTTGTCGACGGTATGGAGGAGGGAAGGATGGGGACTTCTATTTCTTGTTCGGGTTGTCTGGGTGTACTTCAGGAATACTCGAACTAAGAACCCAACGACGCGAGGACCTTACTGGGAGACATAGTGGATCAGTGGCTCCACGCCCCATACTTTCCTCGGGGTCTACGATAGGATAGCTCCCGGTATCTCTAACTCCTTCTTTTGTTTGCTGAAGACCTTCCGTACCTCTACTATAAACCGGTCCAATAAGGACCTCGGTTTCTCTGACTCGGGATGGGACACACCAGTCCTGAGGGCAGGGACGTTTGATTCCTACTTCTACGTGCAATAAGACGAAAAATATTGGACGAGGTGACGGACGCGTCCCTAAGTTCGTTCTAACTGTGAATGGAATTCGAGGACTTAACGTCTTAGTAGATGTTGTTGTTGACGATTCGGGTGTAGGTAGGATAGGTAAAGACTCTACCAAGAATTACTAGGTAAGGGACCGTTTGAAGAGACTCGAAATATCGAAACATTACGTACGAACCGAGATTACCCAAAGTAGAATTTATTTTTGTCTGAGACATCGCTACAGTTTTAGA
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   <--- 3'-AGGGACCGTTTGAAGAGACT-5'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <--- 3'-ACCGAGATTACCCAAAGTAGA-5'
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   <--- 3'-GAGACATCGCTACAGTTTTAG-5'
+----------------------------------------------------------------------------------------
+    
+ '''
+
