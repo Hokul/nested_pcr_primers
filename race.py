@@ -3,6 +3,12 @@
 from Bio.SeqUtils import MeltingTemp as mt #I'm using the simpliest methode calculation melting temperature (Tm_Wallace)
 from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
+from Bio import SeqIO
+
+PATH_TO_FASTA = input('Enter the path to file: ')
+sequence = {}
+for record in SeqIO.parse(PATH_TO_FASTA, "fasta"):
+    sequence.update({record.id:record.seq})
 
 #Return complementary nucleotide
 def complement(N):
@@ -341,53 +347,34 @@ def rcr_vis(prF1, prF2, prF3, prR1, prR2, prR3, end3, end5):
     prR3_vis = ' ' * (len(end5 [:end5.find(prR3)]) - 8) + "<--- 3'-" + prR3 + "-5'"
     return(str('' + prF1_vis +  '\n' + prF2_vis + '\n' + prF3_vis + '\n' + end3 + '\n' + end5 + '\n' + prR3_vis + '\n' + prR2_vis + '\n' + prR1_vis) + '\n')
 
-'''
-Just sample
-end3 = 'tggctgaccAtAgGaCgAgAGCttCCTGGtgaaGtgtgTTtCTtgaAATCatCACcaCCATGGACAgCAaaGGtTcGTCgcagaaAGGGTCCcGCCTGCTCCTGCTGCTGGTggTGTCAAATCTaCTCTTGTGCCAgGGtgTggTcTcCaCccCCgTCTGTCCcaAtGGGccTGgCaaCTGCCaGGtaTCCCTTcgAGACCTGTTTGaCCggGCagtCaTggTGTCCcaCtaCATccATgACctCTCCtcggAAATGTTCAacGAaTTTGATaAACgGTATGCCCAGGGcAAAGgGTtCaTTAcCAtgGcCctCaACAgcTGCCAtACCtccTCCCTtCcTacCCCtGAAGAtAaagAaCAAgcCCaACaGAcccACAtgAAGtCCTTATgAgcTtGATtCTtggGTTgCTgcgCTCCTGGaAtgacCCTCTgTATCAcCTAGTCACcGAggTgCGGgGTATGAAAGgAGcCcCAgATgCTATCCTATCgAGgGCcAtAGAgAtTGaGgAAgAAaacAAAcgACTTCtgGaAggCATgGAGAtGataTTtgGCCAGGTTATTccTggAGCCAAaGAgacTGagCCctaCccTgtgTGGTcaGGACTCCcgTCCCTgCaaaCtAaggATGAAGATgcaCGTtATTCTGCtTTTTATAaCCTGcTCcaCTGCCTGCGCAGgGATtCaaGcAAgaTTGACAcTTACcttAAGcTCcTGaatTGCaGAaTcATCTacaAcAAcAAcTGcTAAgcCCACATccATcCtATCCAttTCTGAGAtGGtTCtTAATGATCcATtCCcTgGCAaacttctctgagctttatAGCTTTgTAATGCATGCTtgGcTctAATGGGTtTCaTCTTAAATAAAaACAgAcTCTGTAGcGATGTCAAAAtct'
-
-n = int((len(end3))/3)*2-50
-
-end3 = end3.upper()
-end3 = Seq(end3, IUPAC.unambiguous_dna)
-end5 = end3.reverse_complement()
-
-pcr_end3 = end3
-pcr_end5 = end5[::-1]
-
-end5 = end5[:n]
-end3 = end3[:n]
-
-primers_and_seq = gen_nested_primers(end3, end5)
-prF1 = primers_and_seq[0]
-prR1 = primers_and_seq[1]
-end3 = primers_and_seq[2]
-end5 = primers_and_seq[3]
-
-primers_and_seq1 = primers(end3, end5)
-prF2 = primers_and_seq1[0]
-prR2 = primers_and_seq1[1]
-end3 = primers_and_seq1[2]
-end5 = primers_and_seq1[3]
-
-primers_and_seq2 = primers(end3, end5)
-prF3 = primers_and_seq2[0]
-prR3 = primers_and_seq2[1]
-end3 = primers_and_seq2[2]
-end5 = primers_and_seq2[3]
-
-with open('file.txt', 'a') as file:
-    file.write(rcr_vis(prF1, prF2, prF3, prR1, prR2, prR3, pcr_end3, pcr_end5))
----------------------------------------------------------------------------------------    
- 
-                   5'-TTCCTGGTGAAGTGTGTTTC-3' --->
-                                                       5'-CATGGACAGCAAAGGTTCG-3' --->
-                                                                                                  5'-CTGCTGCTGGTGGTGTCAA-3' --->
-TGGCTGACCATAGGACGAGAGCTTCCTGGTGAAGTGTGTTTCTTGAAATCATCACCACCATGGACAGCAAAGGTTCGTCGCAGAAAGGGTCCCGCCTGCTCCTGCTGCTGGTGGTGTCAAATCTACTCTTGTGCCAGGGTGTGGTCTCCACCCCCGTCTGTCCCAATGGGCCTGGCAACTGCCAGGTATCCCTTCGAGACCTGTTTGACCGGGCAGTCATGGTGTCCCACTACATCCATGACCTCTCCTCGGAAATGTTCAACGAATTTGATAAACGGTATGCCCAGGGCAAAGGGTTCATTACCATGGCCCTCAACAGCTGCCATACCTCCTCCCTTCCTACCCCTGAAGATAAAGAACAAGCCCAACAGACCCACATGAAGTCCTTATGAGCTTGATTCTTGGGTTGCTGCGCTCCTGGAATGACCCTCTGTATCACCTAGTCACCGAGGTGCGGGGTATGAAAGGAGCCCCAGATGCTATCCTATCGAGGGCCATAGAGATTGAGGAAGAAAACAAACGACTTCTGGAAGGCATGGAGATGATATTTGGCCAGGTTATTCCTGGAGCCAAAGAGACTGAGCCCTACCCTGTGTGGTCAGGACTCCCGTCCCTGCAAACTAAGGATGAAGATGCACGTTATTCTGCTTTTTATAACCTGCTCCACTGCCTGCGCAGGGATTCAAGCAAGATTGACACTTACCTTAAGCTCCTGAATTGCAGAATCATCTACAACAACAACTGCTAAGCCCACATCCATCCTATCCATTTCTGAGATGGTTCTTAATGATCCATTCCCTGGCAAACTTCTCTGAGCTTTATAGCTTTGTAATGCATGCTTGGCTCTAATGGGTTTCATCTTAAATAAAAACAGACTCTGTAGCGATGTCAAAATCT
-ACCGACTGGTATCCTGCTCTCGAAGGACCACTTCACACAAAGAACTTTAGTAGTGGTGGTACCTGTCGTTTCCAAGCAGCGTCTTTCCCAGGGCGGACGAGGACGACGACCACCACAGTTTAGATGAGAACACGGTCCCACACCAGAGGTGGGGGCAGACAGGGTTACCCGGACCGTTGACGGTCCATAGGGAAGCTCTGGACAAACTGGCCCGTCAGTACCACAGGGTGATGTAGGTACTGGAGAGGAGCCTTTACAAGTTGCTTAAACTATTTGCCATACGGGTCCCGTTTCCCAAGTAATGGTACCGGGAGTTGTCGACGGTATGGAGGAGGGAAGGATGGGGACTTCTATTTCTTGTTCGGGTTGTCTGGGTGTACTTCAGGAATACTCGAACTAAGAACCCAACGACGCGAGGACCTTACTGGGAGACATAGTGGATCAGTGGCTCCACGCCCCATACTTTCCTCGGGGTCTACGATAGGATAGCTCCCGGTATCTCTAACTCCTTCTTTTGTTTGCTGAAGACCTTCCGTACCTCTACTATAAACCGGTCCAATAAGGACCTCGGTTTCTCTGACTCGGGATGGGACACACCAGTCCTGAGGGCAGGGACGTTTGATTCCTACTTCTACGTGCAATAAGACGAAAAATATTGGACGAGGTGACGGACGCGTCCCTAAGTTCGTTCTAACTGTGAATGGAATTCGAGGACTTAACGTCTTAGTAGATGTTGTTGTTGACGATTCGGGTGTAGGTAGGATAGGTAAAGACTCTACCAAGAATTACTAGGTAAGGGACCGTTTGAAGAGACTCGAAATATCGAAACATTACGTACGAACCGAGATTACCCAAAGTAGAATTTATTTTTGTCTGAGACATCGCTACAGTTTTAGA
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   <--- 3'-AGGGACCGTTTGAAGAGACT-5'
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <--- 3'-ACCGAGATTACCCAAAGTAGA-5'
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   <--- 3'-GAGACATCGCTACAGTTTTAG-5'
-----------------------------------------------------------------------------------------
-    
- '''
-
+for i in sequence:
+    end3 = sequence[i].upper()
+    n = int((len(end3))/3)*2-50
+    end5 = end3.reverse_complement()
+    pcr_end3 = end3
+    pcr_end5 = end5[::-1]
+    end5 = end5[:n]
+    end3 = end3[:n]
+    counter = 0
+    with open('file.txt', 'a') as file:
+        file.write(i + '\n')
+    while counter != 3:
+        primers_and_seq = primers(end3, end5)
+        prF = primers_and_seq[0]
+        prR = primers_and_seq[1]
+        end3 = primers_and_seq[2]
+        end5 = primers_and_seq[3]
+        if counter == 0:
+            prF1 = prF
+            prR1 = prR
+        elif counter == 1:
+            prF2 = prF
+            prR2 = prR
+        elif counter == 2:
+            prF3 = prF
+            prR3 = prR
+        counter += 1
+        with open('file.txt', 'a') as file:
+            file.write(' >Forward primer ' + str(counter) + ': '+'\n' + str(prF) + ': Melting temperature' + '%0.2f' % mt.Tm_Wallace(prF) + '\n'+ '>Revers primer ' + str(counter) + ': '+ '\n' + str(prR) + ': Melting temperature' + '%0.2f' % mt.Tm_Wallace(prR) + '\n')
+    with open('file.txt', 'a') as file:
+        file.write(rcr_vis(prF1, prF2, prF3, prR1, prR2, prR3, pcr_end3, pcr_end5))
